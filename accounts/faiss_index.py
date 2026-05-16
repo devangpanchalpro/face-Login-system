@@ -39,14 +39,14 @@ class FaceSearchIndex:
         self.index.add(matrix)
         print(f"✅ FAISS index built with {len(self.user_ids)} users")
 
-    def search(self, encoding, threshold=0.45):
+    def search(self, encoding, threshold=0.30):
         """
         Find the closest matching face in the index.
 
         Args:
             encoding: 128-d numpy array from face_recognition
             threshold: L2 distance threshold (lower = stricter)
-                       0.4 = very strict, 0.5 = moderate, 0.6 = lenient
+                       0.25 = very strict, 0.30 = strict, 0.45 = moderate
 
         Returns:
             (FaceUser, distance) if match found, (None, distance) otherwise

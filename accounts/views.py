@@ -192,9 +192,25 @@ def api_login(request):
     # Build FAISS index and search
     fi = FaceSearchIndex()
     fi.build()
-    matched_user, distance = fi.search(encoding, threshold=0.45)
+    matched_user, distance = fi.search(encoding, threshold=0.30)
 
     if matched_user:
+        # DOUBLE-CHECK: Use face_recognition.compare_faces for strict verification
+        import face_recognition
+        stored_encoding = pickle.loads(matched_user.face_encoding)
+        is_match = face_recognition.compare_faces(
+            [stored_encoding], encoding, tolerance=0.4
+        )[0]
+
+        if not is_match:
+            # FAISS said close, but compare_faces says NO — reject!
+            return JsonResponse({
+                'success': False,
+                'message': 'Face does not match. Access denied.',
+                'redirect_to_register': True,
+                'distance': round(distance, 4),
+            })
+
         # Save previous last_login for "last seen" display
         previous_login = matched_user.last_login
 
@@ -228,7 +244,8 @@ def api_login(request):
 
     return JsonResponse({
         'success': False,
-        'message': 'Face not recognized. Access denied.',
+        'message': 'Face not recognized. Please register first.',
+        'redirect_to_register': True,
         'distance': round(distance, 4),
     })
 
