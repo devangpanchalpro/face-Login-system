@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<section class="page-section d-flex align-items-center min-vh-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="glass-card p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <h2 class="gradient-text mb-2">
+                            <i class="bi bi-person-plus-fill me-2"></i>Create Account
+                        </h2>
+                        <p class="text-secondary">Fill in your details and capture your face to register</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Left: Form -->
+                        <div class="col-md-6">
+                            <form id="register-form" autocomplete="off">
+                                <div class="mb-3">
+                                    <label for="reg-name" class="form-label">
+                                        <i class="bi bi-person-fill me-1"></i> Full Name
+                                    </label>
+                                    <input type="text" class="form-control glass-input" id="reg-name"
+                                           placeholder="Enter your full name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="reg-email" class="form-label">
+                                        <i class="bi bi-envelope-fill me-1"></i> Email Address
+                                    </label>
+                                    <input type="email" class="form-control glass-input" id="reg-email"
+                                           placeholder="you@example.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="reg-phone" class="form-label">
+                                        <i class="bi bi-phone-fill me-1"></i> Phone Number
+                                    </label>
+                                    <input type="tel" class="form-control glass-input" id="reg-phone"
+                                           placeholder="+91 XXXXX XXXXX">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="reg-dob" class="form-label">
+                                        <i class="bi bi-calendar-fill me-1"></i> Date of Birth
+                                    </label>
+                                    <input type="date" class="form-control glass-input" id="reg-dob">
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Right: Webcam -->
+                        <div class="col-md-6">
+                            <div class="webcam-container">
+                                <div class="webcam-wrapper" id="webcam-wrapper">
+                                    <video id="webcam" autoplay playsinline muted class="webcam-video"></video>
+                                    <canvas id="webcam-canvas" style="display:none;"></canvas>
+
+                                    <!-- Face detection overlay -->
+                                    <div class="webcam-overlay" id="webcam-overlay">
+                                        <div class="face-guide"></div>
+                                    </div>
+
+                                    <!-- Status badge -->
+                                    <div class="webcam-status" id="webcam-status">
+                                        <i class="bi bi-camera-fill me-1"></i> Camera Loading...
+                                    </div>
+                                </div>
+
+                                <!-- Captured preview -->
+                                <div class="captured-preview d-none" id="captured-preview">
+                                    <img id="captured-image" class="webcam-video" alt="Captured face">
+                                    <div class="captured-badge">
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i> Face Captured
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 mt-3">
+                                    <button type="button" class="btn btn-outline-glow flex-fill" id="btn-capture">
+                                        <i class="bi bi-camera-fill me-1"></i> Capture Face
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary flex-fill d-none" id="btn-retake">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Retake
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-glow btn-lg px-5" id="btn-register" disabled>
+                            <span class="spinner-border spinner-border-sm d-none me-2" id="register-spinner"></span>
+                            <i class="bi bi-shield-check me-2" id="register-icon"></i>
+                            <span id="register-text">Register</span>
+                        </button>
+                    </div>
+
+                    <p class="text-center text-secondary mt-3 mb-0">
+                        Already registered?
+                        <a href="{% url 'login_page' %}" class="text-info">Login with face</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% load static %}
+<script src="{% static 'js/webcam.js' %}"></script>
+<script src="{% static 'js/register.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<section class="hero-section d-flex align-items-center min-vh-100">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <!-- Left: Hero Text -->
+            <div class="col-lg-6 text-center text-lg-start">
+                <div class="hero-badge mb-4 animate-fade-in">
+                    <span class="badge glass-badge px-3 py-2">
+                        <i class="bi bi-lightning-fill text-warning me-1"></i>
+                        AI-Powered Authentication
+                    </span>
+                </div>
+                <h1 class="hero-title animate-slide-up">
+                    Secure Login with
+                    <span class="gradient-text">Your Face</span>
+                </h1>
+                <p class="hero-subtitle mt-3 animate-slide-up-delay text-secondary">
+                    No passwords. No OTPs. Just look at the camera and you're in.
+                    Powered by 128-point facial recognition with 99.38% accuracy.
+                </p>
+                <div class="hero-stats mt-4 animate-fade-in-delay">
+                    <div class="d-flex gap-4 justify-content-center justify-content-lg-start flex-wrap">
+                        <div class="stat-item">
+                            <span class="stat-number">{{ total_users }}</span>
+                            <span class="stat-label">Registered Users</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">128</span>
+                            <span class="stat-label">Face Points</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">99.38%</span>
+                            <span class="stat-label">Accuracy</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-cta mt-5 d-flex gap-3 justify-content-center justify-content-lg-start animate-slide-up-delay-2">
+                    <a href="{% url 'register_page' %}" class="btn btn-glow btn-lg px-5" id="hero-register-btn">
+                        <i class="bi bi-person-plus-fill me-2"></i> Register Now
+                    </a>
+                    <a href="{% url 'login_page' %}" class="btn btn-outline-glow btn-lg px-5" id="hero-login-btn">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Face Login
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right: Animated Face Scan Graphic -->
+            <div class="col-lg-6 d-none d-lg-flex justify-content-center">
+                <div class="hero-graphic animate-float">
+                    <div class="scan-ring ring-1"></div>
+                    <div class="scan-ring ring-2"></div>
+                    <div class="scan-ring ring-3"></div>
+                    <div class="scan-center">
+                        <i class="bi bi-person-bounding-box"></i>
+                    </div>
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5 section-title">How It Works</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="glass-card feature-card text-center p-4 h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-camera-fill"></i>
+                    </div>
+                    <h5>1. Capture Face</h5>
+                    <p class="text-secondary mb-0">Register by capturing your face through the webcam. We extract 128 unique facial points.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card feature-card text-center p-4 h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-cpu-fill"></i>
+                    </div>
+                    <h5>2. AI Encoding</h5>
+                    <p class="text-secondary mb-0">Your face is converted into a 128-dimensional vector using deep learning (dlib ResNet).</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card feature-card text-center p-4 h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-lightning-fill"></i>
+                    </div>
+                    <h5>3. Instant Match</h5>
+                    <p class="text-secondary mb-0">FAISS searches thousands of faces in milliseconds to find your match and log you in.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

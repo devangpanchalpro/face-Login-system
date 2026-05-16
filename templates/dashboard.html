@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-section pt-5 mt-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- User Profile Card -->
+                <div class="glass-card p-4 p-md-5 mb-4 animate-slide-up">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- User Face Photo -->
+                            {% if user.photo %}
+                            <div class="profile-avatar">
+                                <img src="{{ user.photo.url }}" alt="{{ user.name }}" class="avatar-img">
+                            </div>
+                            {% else %}
+                            <div class="profile-avatar avatar-placeholder">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h2 class="gradient-text mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+                                <p class="text-secondary mb-0">Welcome back, {{ user.name }}!</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-box-arrow-left me-1"></i> Logout
+                        </a>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="info-item"><span class="info-label"><i class="bi bi-person-fill me-2"></i>Name</span><span class="info-value">{{ user.name }}</span></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item"><span class="info-label"><i class="bi bi-envelope-fill me-2"></i>Email</span><span class="info-value">{{ user.email }}</span></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item"><span class="info-label"><i class="bi bi-phone-fill me-2"></i>Phone</span><span class="info-value">{{ user.phone|default:"Not provided" }}</span></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item"><span class="info-label"><i class="bi bi-calendar-fill me-2"></i>Date of Birth</span><span class="info-value">{{ user.dob|default:"Not provided" }}</span></div>
+                        </div>
+                    </div>
+                    <!-- Stats Row -->
+                    <div class="row g-3 mt-3">
+                        <div class="col-4">
+                            <div class="stat-card text-center p-3">
+                                <div class="stat-number text-info">{{ user.login_count }}</div>
+                                <div class="stat-label">Total Logins</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card text-center p-3">
+                                <div class="stat-number text-success">{% if user.last_login %}{{ user.last_login|timesince }} ago{% else %}First Login{% endif %}</div>
+                                <div class="stat-label">Last Login</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card text-center p-3">
+                                <div class="stat-number text-warning">{{ user.created_at|date:"d M Y" }}</div>
+                                <div class="stat-label">Registered</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Login History -->
+                <div class="glass-card p-4 animate-slide-up-delay">
+                    <h4 class="mb-4"><i class="bi bi-clock-history me-2 text-info"></i>Login History</h4>
+                    {% if history %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle mb-0" id="history-table">
+                            <thead><tr><th>#</th><th>Date & Time</th><th>Confidence</th><th>IP Address</th></tr></thead>
+                            <tbody>
+                                {% for entry in history %}
+                                <tr>
+                                    <td><span class="badge bg-secondary">{{ forloop.counter }}</span></td>
+                                    <td><i class="bi bi-calendar-check me-1 text-info"></i>{{ entry.logged_in_at|date:"d M Y, h:i A" }}</td>
+                                    <td>
+                                        {% if entry.confidence < 0.3 %}
+                                            <span class="badge bg-success">Excellent ({{ entry.confidence|floatformat:4 }})</span>
+                                        {% elif entry.confidence < 0.4 %}
+                                            <span class="badge bg-info">Good ({{ entry.confidence|floatformat:4 }})</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Fair ({{ entry.confidence|floatformat:4 }})</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-secondary">{{ entry.ip_address|default:"N/A" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-secondary text-center mb-0"><i class="bi bi-inbox me-1"></i>No login history yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

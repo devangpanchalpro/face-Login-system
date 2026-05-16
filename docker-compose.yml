@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    container_name: facelogin-web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+    environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DJANGO_SECRET_KEY=dev-secret-key-change-in-production-!@#$%
+    restart: unless-stopped
