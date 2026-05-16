@@ -1,7 +1,4 @@
 django>=5.0
-face_recognition
-dlib
-cmake
 opencv-python-headless
 numpy
 faiss-cpu
