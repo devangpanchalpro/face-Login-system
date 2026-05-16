@@ -17,6 +17,13 @@ class WebcamManager {
      * @returns {Promise<boolean>} true if camera started successfully.
      */
     async start() {
+        // Check if mediaDevices API is available (requires HTTPS)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error('getUserMedia not available. Page must be served over HTTPS.');
+            this.isReady = false;
+            return false;
+        }
+
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -31,7 +38,7 @@ class WebcamManager {
             this.isReady = true;
             return true;
         } catch (err) {
-            console.error('Webcam error:', err);
+            console.error('Webcam error:', err.name, err.message);
             this.isReady = false;
             return false;
         }
