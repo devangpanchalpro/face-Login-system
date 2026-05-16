@@ -396,6 +396,57 @@ body {
 @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 
+/* ─── Multi-Capture Progress Steps ─── */
+.capture-progress-container {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+}
+.capture-step {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    opacity: 0.4; transition: var(--transition);
+}
+.capture-step.active {
+    opacity: 1;
+}
+.capture-step.active .step-icon {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+    animation: step-pulse 1.5s ease-in-out infinite;
+}
+.capture-step.done {
+    opacity: 1;
+}
+.capture-step.done .step-icon {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: white;
+}
+.step-icon {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border-glass);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: var(--text-secondary);
+    transition: var(--transition);
+}
+.step-label {
+    font-size: 0.7rem; font-weight: 600;
+    color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.step-connector {
+    flex: 1; height: 2px;
+    background: var(--border-glass);
+    margin-top: -16px;
+}
+@keyframes step-pulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.6); }
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
     .hero-title { font-size: 2.2rem; }

@@ -1,11 +1,12 @@
 FROM python:3.11-slim
 
-# Install only runtime libraries (no compilation needed)
+# Install runtime libraries + PostgreSQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas0-pthread \
     liblapack3 \
     libgl1 \
     libglib2.0-0t64 \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -25,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN chmod +x entrypoint.sh
-RUN mkdir -p /app/data /app/media /app/staticfiles
+RUN mkdir -p /app/media /app/staticfiles
 
 EXPOSE 8000
 

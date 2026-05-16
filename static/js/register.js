@@ -1,6 +1,5 @@
 /**
- * Registration page logic.
- * Manages form + webcam capture + API submission.
+ * Registration page logic — single front-face capture.
  */
 document.addEventListener('DOMContentLoaded', async () => {
     const cam = new WebcamManager();
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const capturedImage = document.getElementById('captured-image');
     const statusEl = document.getElementById('webcam-status');
 
-    let capturedBase64 = null;
+    let capturedFrame = null;
 
     // Start camera
     const started = await cam.start();
@@ -28,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('Could not access camera. Please allow camera permission.', 'danger');
     }
 
-    // Capture face
+    // Capture front face
     btnCapture.addEventListener('click', () => {
         const frame = cam.captureFrame();
         if (!frame) {
@@ -36,10 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        capturedBase64 = frame;
+        capturedFrame = frame;
         capturedImage.src = frame;
-
-        // Show preview, hide webcam
         webcamWrapper.classList.add('d-none');
         capturedPreview.classList.remove('d-none');
         btnCapture.classList.add('d-none');
@@ -47,12 +44,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnRegister.disabled = false;
 
         cam.stop();
-        showToast('Face captured successfully!', 'success');
+        showToast('Face captured! Ready to register.', 'success');
     });
 
     // Retake
     btnRetake.addEventListener('click', async () => {
-        capturedBase64 = null;
+        capturedFrame = null;
         webcamWrapper.classList.remove('d-none');
         capturedPreview.classList.add('d-none');
         btnCapture.classList.remove('d-none');
@@ -60,10 +57,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnRegister.disabled = true;
 
         await cam.start();
-        statusEl.innerHTML = '<i class="bi bi-camera-fill me-1"></i> Camera Ready';
+        showToast('Retake — look straight at the camera.', 'info');
     });
 
-    // Submit registration
+    // Submit registration with single image
     btnRegister.addEventListener('click', async () => {
         const name = document.getElementById('reg-name').value.trim();
         const email = document.getElementById('reg-email').value.trim();
@@ -73,13 +70,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Validation
         if (!name) { showToast('Please enter your name.', 'warning'); return; }
         if (!email) { showToast('Please enter your email.', 'warning'); return; }
-        if (!capturedBase64) { showToast('Please capture your face first.', 'warning'); return; }
+        if (!capturedFrame) {
+            showToast('Please capture your face first.', 'warning');
+            return;
+        }
 
         // Show loading
         btnRegister.disabled = true;
         registerSpinner.classList.remove('d-none');
         registerIcon.classList.add('d-none');
-        registerText.textContent = 'Processing...';
+        registerText.textContent = 'Processing face...';
 
         try {
             const resp = await fetch('/api/register/', {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name, email, phone, dob,
-                    image_base64: capturedBase64,
+                    image_base64: capturedFrame,
                 }),
             });
 

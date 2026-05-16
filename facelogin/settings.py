@@ -1,6 +1,6 @@
 """
 Django settings for facelogin project.
-Supports both local development and production (Render.com) deployment.
+Uses Docker with PostgreSQL + pgvector for deployment.
 """
 
 import os
@@ -21,18 +21,9 @@ ALLOWED_HOSTS = os.environ.get(
     'DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0'
 ).split(',')
 
-# Allow Render's .onrender.com domain
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-
 # CSRF trusted origins for production
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in CSRF_TRUSTED_ORIGINS if o.strip()]
-
-# Auto-add Render hostname to CSRF trusted origins
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 
 # Application definition
 INSTALLED_APPS = [
@@ -76,13 +67,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'facelogin.wsgi.application'
 
-# Database — SQLite stored in /app/data/ for Docker volume persistence
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'data' / 'db.sqlite3',
+# Database — PostgreSQL with pgvector for vector similarity search
+# Supports DATABASE_URL env var (for Docker/Render) or falls back to local PostgreSQL
+# pyrefly: ignore [missing-import]
+import dj_database_url
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'facelogin',
+            'USER': 'facelogin',
+            'PASSWORD': 'facelogin_secret',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
 
 # Password validation (not used for face login, but keeping Django defaults)
 AUTH_PASSWORD_VALIDATORS = [
@@ -103,6 +108,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },

@@ -47,6 +47,13 @@
                                     <input type="date" class="form-control glass-input" id="reg-dob">
                                 </div>
                             </form>
+
+                            <!-- Capture Hint -->
+                            <div class="capture-progress-container mt-3">
+                                <p class="text-info mb-0" style="font-size: 0.9rem; font-weight: 500;">
+                                    <i class="bi bi-person-bounding-box me-1"></i> Look straight at the camera and capture your face
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Right: Webcam -->
@@ -55,19 +62,14 @@
                                 <div class="webcam-wrapper" id="webcam-wrapper">
                                     <video id="webcam" autoplay playsinline muted class="webcam-video"></video>
                                     <canvas id="webcam-canvas" style="display:none;"></canvas>
-
-                                    <!-- Face detection overlay -->
                                     <div class="webcam-overlay" id="webcam-overlay">
                                         <div class="face-guide"></div>
                                     </div>
-
-                                    <!-- Status badge -->
                                     <div class="webcam-status" id="webcam-status">
                                         <i class="bi bi-camera-fill me-1"></i> Camera Loading...
                                     </div>
                                 </div>
 
-                                <!-- Captured preview -->
                                 <div class="captured-preview d-none" id="captured-preview">
                                     <img id="captured-image" class="webcam-video" alt="Captured face">
                                     <div class="captured-badge">

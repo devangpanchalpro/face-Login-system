@@ -1,10 +1,11 @@
 """
 Views for face-based registration, login, and dashboard.
+Uses PostgreSQL + pgvector for fast vector similarity search.
 """
 import json
-import pickle
 import base64
 import uuid
+import numpy as np
 
 from django.core.files.base import ContentFile
 
@@ -14,9 +15,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.utils import timezone
 
-from .models import FaceUser, LoginHistory
+from .models import FaceUser, FaceEncoding, LoginHistory
 from .face_utils import get_face_encoding
-from .faiss_index import FaceSearchIndex
+from .vector_search import search_face
 
 
 def get_client_ip(request):
@@ -86,7 +87,7 @@ def logout_view(request):
 @require_POST
 def api_register(request):
     """
-    Register a new user with face encoding.
+    Register a new user with a single front-face encoding.
 
     Expects JSON body:
     {
@@ -120,13 +121,13 @@ def api_register(request):
     if FaceUser.objects.filter(email=email).exists():
         return JsonResponse({'success': False, 'message': 'This email is already registered.'}, status=400)
 
-    # Extract face encoding
+    # Extract face encoding from the captured image
     encoding, msg = get_face_encoding(image_base64)
     if encoding is None:
         return JsonResponse({'success': False, 'message': msg}, status=400)
 
-    # Serialize encoding
-    encoding_blob = pickle.dumps(encoding)
+    # Store as list for pgvector VectorField
+    encoding_list = encoding.tolist()
 
     # Parse date of birth
     dob_parsed = None
@@ -137,16 +138,24 @@ def api_register(request):
         except ValueError:
             return JsonResponse({'success': False, 'message': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
 
-    # Create user
+    # Create user with front-face encoding
     user = FaceUser.objects.create(
         name=name,
         email=email,
         phone=phone or None,
         dob=dob_parsed,
-        face_encoding=encoding_blob,
+        face_encoding=encoding_list,
+        encoding_count=1,
     )
 
-    # Save the captured face photo
+    # Store encoding in FaceEncoding table (with HNSW index for fast search)
+    FaceEncoding.objects.create(
+        user=user,
+        encoding=encoding_list,
+        label='front',
+    )
+
+    # Save captured face photo
     try:
         img_data = image_base64.split(',', 1)[1] if ',' in image_base64 else image_base64
         img_bytes = base64.b64decode(img_data)
@@ -166,7 +175,7 @@ def api_register(request):
 @require_POST
 def api_login(request):
     """
-    Authenticate a user by face match using FAISS.
+    Authenticate a user by face match using pgvector nearest-neighbor search.
 
     Expects JSON body:
     {
@@ -189,21 +198,35 @@ def api_login(request):
     if encoding is None:
         return JsonResponse({'success': False, 'message': msg}, status=400)
 
-    # Build FAISS index and search
-    fi = FaceSearchIndex()
-    fi.build()
-    matched_user, distance = fi.search(encoding, threshold=0.30)
+    # Search using pgvector (PostgreSQL native vector similarity search)
+    matched_user, distance = search_face(encoding, threshold=0.55)
 
     if matched_user:
-        # DOUBLE-CHECK: Use face_recognition.compare_faces for strict verification
+        # DOUBLE-CHECK: Compare against stored encodings using face_recognition
+        # pyrefly: ignore [missing-import]
         import face_recognition
-        stored_encoding = pickle.loads(matched_user.face_encoding)
-        is_match = face_recognition.compare_faces(
-            [stored_encoding], encoding, tolerance=0.4
-        )[0]
 
-        if not is_match:
-            # FAISS said close, but compare_faces says NO — reject!
+        # Get all encodings for this user from pgvector
+        user_encodings = []
+        face_enc_records = FaceEncoding.objects.filter(user=matched_user)
+
+        for fe in face_enc_records:
+            stored_enc = np.array(fe.encoding)
+            user_encodings.append(stored_enc)
+
+        if not user_encodings:
+            # Fallback to primary encoding
+            stored_enc = np.array(matched_user.face_encoding)
+            user_encodings.append(stored_enc)
+
+        # Compare against ALL encodings — if ANY match, approve login
+        matches = face_recognition.compare_faces(
+            user_encodings, encoding, tolerance=0.4
+        )
+        best_match = any(matches)
+
+        if not best_match:
+            # None of the stored encodings matched — reject!
             return JsonResponse({
                 'success': False,
                 'message': 'Face does not match. Access denied.',
@@ -239,6 +262,7 @@ def api_login(request):
                 'last_login': previous_login.strftime('%d %b %Y, %I:%M %p') if previous_login else 'First login!',
                 'login_count': matched_user.login_count,
                 'confidence': round(distance, 4),
+                'encodings_stored': matched_user.encoding_count,
             }
         })
 

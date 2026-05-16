@@ -1,7 +1,9 @@
 django>=5.0
 opencv-python-headless
 numpy
-faiss-cpu
+pgvector
+psycopg2-binary
+dj-database-url
 Pillow
 gunicorn
 whitenoise
