@@ -7,3 +7,5 @@ dj-database-url
 Pillow
 gunicorn
 whitenoise
+insightface
+onnxruntime

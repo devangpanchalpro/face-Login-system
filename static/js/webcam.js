@@ -1,6 +1,6 @@
 /**
  * Webcam utility module.
- * Handles getUserMedia, canvas capture, and Base64 extraction.
+ * Handles getUserMedia, canvas capture, face detection, and Base64 extraction.
  */
 
 class WebcamManager {
@@ -10,6 +10,13 @@ class WebcamManager {
         this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
         this.stream = null;
         this.isReady = false;
+        this._detectLoop = null;
+
+        // Initialize browser FaceDetector if available (Chrome/Edge)
+        this.faceDetector = null;
+        if (window.FaceDetector) {
+            this.faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
+        }
     }
 
     /**
@@ -58,9 +65,51 @@ class WebcamManager {
     }
 
     /**
+     * Detect faces in the current video frame using browser FaceDetector API.
+     * @returns {Promise<number>} Number of faces detected (0, 1, 2+), or -1 if unsupported.
+     */
+    async detectFaces() {
+        if (!this.faceDetector || !this.isReady || !this.video.videoWidth) {
+            return -1; // API not available
+        }
+        try {
+            const faces = await this.faceDetector.detect(this.video);
+            return faces.length;
+        } catch (err) {
+            return -1;
+        }
+    }
+
+    /**
+     * Start continuous face detection loop.
+     * Calls the callback every ~300ms with the number of detected faces.
+     * @param {function(number)} callback - receives face count (0, 1, 2+, or -1 if unsupported)
+     * @param {number} intervalMs - detection interval in milliseconds
+     */
+    startFaceDetection(callback, intervalMs = 300) {
+        this.stopFaceDetection();
+        this._detectLoop = setInterval(async () => {
+            if (!this.isReady) return;
+            const count = await this.detectFaces();
+            callback(count);
+        }, intervalMs);
+    }
+
+    /**
+     * Stop the continuous face detection loop.
+     */
+    stopFaceDetection() {
+        if (this._detectLoop) {
+            clearInterval(this._detectLoop);
+            this._detectLoop = null;
+        }
+    }
+
+    /**
      * Stop the webcam stream and release resources.
      */
     stop() {
+        this.stopFaceDetection();
         if (this.stream) {
             this.stream.getTracks().forEach(track => track.stop());
             this.stream = null;

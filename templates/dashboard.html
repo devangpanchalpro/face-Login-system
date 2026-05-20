@@ -78,11 +78,11 @@
                                     <td><span class="badge bg-secondary">{{ forloop.counter }}</span></td>
                                     <td><i class="bi bi-calendar-check me-1 text-info"></i>{{ entry.logged_in_at|date:"d M Y, h:i A" }}</td>
                                     <td>
-                                        {% if entry.confidence < 0.3 %}
+                                        {% if entry.confidence < 0.6 %}
                                             <span class="badge bg-success px-3 py-2" style="font-size: 0.85rem;">
                                                 <i class="bi bi-shield-fill-check me-1"></i>{{ entry.confidence|confidence_pct }}
                                             </span>
-                                        {% elif entry.confidence < 0.4 %}
+                                        {% elif entry.confidence < 0.8 %}
                                             <span class="badge bg-info px-3 py-2" style="font-size: 0.85rem;">
                                                 <i class="bi bi-shield-fill me-1"></i>{{ entry.confidence|confidence_pct }}
                                             </span>

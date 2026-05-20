@@ -1,27 +1,23 @@
 FROM python:3.11-slim
 
-# Install runtime libraries + PostgreSQL client
+# Install runtime libraries + build tools for insightface Cython extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas0-pthread \
     liblapack3 \
     libgl1 \
     libglib2.0-0t64 \
     libpq5 \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Step 1: Install pre-compiled dlib (no cmake/build needed!)
-RUN pip install --no-cache-dir dlib-bin
-
-# Step 2: Install face_recognition WITHOUT re-installing dlib
-#         (it sees dlib already installed from dlib-bin)
-RUN pip install --no-cache-dir --no-deps face_recognition
-RUN pip install --no-cache-dir face_recognition_models Click
-
-# Step 3: Install remaining dependencies
+# Install Python dependencies (insightface needs g++ for Cython build)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Pre-download InsightFace model (buffalo_l) during build so it's cached
+RUN python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); app.prepare(ctx_id=0, det_size=(320, 320)); print('✅ InsightFace model downloaded')"
 
 COPY . .
 

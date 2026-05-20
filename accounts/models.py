@@ -14,7 +14,7 @@ class FaceUser(models.Model):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
-    face_encoding = VectorField(dimensions=128)  # 128-d face_recognition vector
+    face_encoding = VectorField(dimensions=512)  # 512-d InsightFace ArcFace vector
     photo = models.ImageField(upload_to='faces/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(blank=True, null=True)
@@ -50,7 +50,7 @@ class FaceEncoding(models.Model):
         on_delete=models.CASCADE,
         related_name='encodings'
     )
-    encoding = VectorField(dimensions=128)  # 128-d face_recognition vector
+    encoding = VectorField(dimensions=512)  # 512-d InsightFace ArcFace vector
     label = models.CharField(
         max_length=50,
         default='front',

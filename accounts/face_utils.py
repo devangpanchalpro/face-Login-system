@@ -1,11 +1,28 @@
 """
-Face processing utilities.
-Handles Base64 image decoding and face_recognition encoding.
+Face processing utilities — powered by InsightFace (ArcFace + SCRFD).
+Ultra-fast detection (~5ms) and 512-d embedding extraction (~10ms).
 """
 import base64
 import cv2
 import numpy as np
-import face_recognition
+from insightface.app import FaceAnalysis
+
+# Initialize InsightFace model once at module load (singleton pattern)
+# buffalo_l = SCRFD detector + ArcFace recognizer
+_face_app = None
+
+
+def _get_face_app():
+    """Lazy-load the InsightFace model (loaded once, reused forever)."""
+    global _face_app
+    if _face_app is None:
+        _face_app = FaceAnalysis(
+            name='buffalo_l',
+            providers=['CPUExecutionProvider']
+        )
+        # det_size=(320, 320) = optimal speed/accuracy tradeoff
+        _face_app.prepare(ctx_id=0, det_size=(320, 320))
+    return _face_app
 
 
 def decode_base64_image(base64_str):
@@ -29,10 +46,11 @@ def decode_base64_image(base64_str):
 
 def get_face_encoding(base64_str):
     """
-    Extract a 128-dimensional face encoding from a Base64-encoded image.
+    Extract a 512-dimensional face encoding from a Base64-encoded image
+    using InsightFace (ArcFace model).
 
     Returns:
-        (encoding, message): encoding is a numpy array or None,
+        (encoding, message): encoding is a numpy array (512-d) or None,
                              message is 'OK' or an error description.
     """
     try:
@@ -40,27 +58,26 @@ def get_face_encoding(base64_str):
     except ValueError as e:
         return None, str(e)
 
-    # Resize image if too large — 320px is optimal for HOG detection speed
+    # Resize if too large for faster processing
     h, w = img.shape[:2]
-    max_dim = 320
+    max_dim = 640
     if max(h, w) > max_dim:
         scale = max_dim / max(h, w)
         img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
-    # Convert BGR → RGB for face_recognition
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # Run InsightFace detection + embedding extraction in one call
+    app = _get_face_app()
+    faces = app.get(img)
 
-    # Detect face locations
-    locations = face_recognition.face_locations(rgb)
-
-    if len(locations) == 0:
+    if len(faces) == 0:
         return None, "No face detected. Please ensure your face is clearly visible."
-    if len(locations) > 1:
+    if len(faces) > 1:
         return None, "Multiple faces detected. Only one person should be in the frame."
 
-    # Extract 128-d encoding
-    encodings = face_recognition.face_encodings(rgb, locations)
-    if not encodings:
+    # Get the normalized 512-d embedding
+    embedding = faces[0].normed_embedding
+
+    if embedding is None:
         return None, "Could not encode the face. Please try again."
 
-    return encodings[0], "OK"
+    return embedding, "OK"

@@ -129,59 +129,39 @@ def api_register(request):
         return JsonResponse({'success': False, 'message': msg}, status=400)
 
     # Check if face is already registered (Auto-Login feature)
-    matched_user, distance = search_face(encoding, threshold=0.45)
+    matched_user, distance = search_face(encoding, threshold=0.9)
     if matched_user:
-        import face_recognition
+        previous_login = matched_user.last_login
+        matched_user.record_login()
 
-        # Get all encodings for this user from pgvector
-        user_encodings = []
-        face_enc_records = FaceEncoding.objects.filter(user=matched_user)
-
-        for fe in face_enc_records:
-            stored_enc = np.array(fe.encoding)
-            user_encodings.append(stored_enc)
-
-        if not user_encodings:
-            # Fallback to primary encoding
-            stored_enc = np.array(matched_user.face_encoding)
-            user_encodings.append(stored_enc)
-
-        # Compare against ALL encodings — if ANY match, approve auto-login
-        matches = face_recognition.compare_faces(
-            user_encodings, encoding, tolerance=0.4
+        # Record login duration
+        duration = time.time() - start_time
+        LoginHistory.objects.create(
+            user=matched_user,
+            confidence=distance,
+            ip_address=get_client_ip(request),
+            login_duration=round(duration, 3)
         )
-        if any(matches):
-            previous_login = matched_user.last_login
-            matched_user.record_login()
 
-            # Record login duration
-            duration = time.time() - start_time
-            LoginHistory.objects.create(
-                user=matched_user,
-                confidence=distance,
-                ip_address=get_client_ip(request),
-                login_duration=round(duration, 3)
-            )
+        # Store user ID in session
+        request.session['face_user_id'] = matched_user.id
 
-            # Store user ID in session
-            request.session['face_user_id'] = matched_user.id
-
-            return JsonResponse({
-                'success': True,
-                'message': f'Face already registered! Logging you in as {matched_user.name}...',
-                'redirect_to_dashboard': True,
-                'user': {
-                    'id': matched_user.id,
-                    'name': matched_user.name,
-                    'email': matched_user.email,
-                    'phone': matched_user.phone or '',
-                    'dob': str(matched_user.dob) if matched_user.dob else '',
-                    'last_login': previous_login.strftime('%d %b %Y, %I:%M %p') if previous_login else 'First login!',
-                    'login_count': matched_user.login_count,
-                    'confidence': round(distance, 4),
-                    'login_duration': round(duration, 3)
-                }
-            })
+        return JsonResponse({
+            'success': True,
+            'message': f'Face already registered! Logging you in as {matched_user.name}...',
+            'redirect_to_dashboard': True,
+            'user': {
+                'id': matched_user.id,
+                'name': matched_user.name,
+                'email': matched_user.email,
+                'phone': matched_user.phone or '',
+                'dob': str(matched_user.dob) if matched_user.dob else '',
+                'last_login': previous_login.strftime('%d %b %Y, %I:%M %p') if previous_login else 'First login!',
+                'login_count': matched_user.login_count,
+                'confidence': round(distance, 4),
+                'login_duration': round(duration, 3)
+            }
+        })
 
     # Store as list for pgvector VectorField
     encoding_list = encoding.tolist()
@@ -259,8 +239,8 @@ def api_login(request):
         return JsonResponse({'success': False, 'message': msg}, status=400)
 
     # Search using pgvector (PostgreSQL native vector similarity search)
-    # Threshold 0.45 = strict match (~98%+ accuracy), safe for 5M+ users
-    matched_user, distance = search_face(encoding, threshold=0.45)
+    # Threshold 0.9 = strict match for InsightFace normalized 512-d vectors
+    matched_user, distance = search_face(encoding, threshold=0.9)
 
     if matched_user:
         # Save previous last_login for "last seen" display
