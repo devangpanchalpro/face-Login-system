@@ -95,7 +95,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(() => window.location.href = '/login/', 2000);
+                const targetUrl = data.redirect_to_dashboard ? '/dashboard/' : '/login/';
+                setTimeout(() => window.location.href = targetUrl, 2000);
             } else {
                 showToast(data.message, 'danger');
                 btnRegister.disabled = false;

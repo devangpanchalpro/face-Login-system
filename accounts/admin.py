@@ -49,7 +49,7 @@ class FaceEncodingAdmin(admin.ModelAdmin):
 
 @admin.register(LoginHistory)
 class LoginHistoryAdmin(admin.ModelAdmin):
-    list_display = ('user', 'logged_in_at', 'confidence', 'ip_address')
+    list_display = ('user', 'logged_in_at', 'confidence', 'login_duration', 'ip_address')
     list_filter = ('logged_in_at',)
     search_fields = ('user__name', 'user__email', 'ip_address')
-    readonly_fields = ('logged_in_at',)
+    readonly_fields = ('logged_in_at', 'login_duration')

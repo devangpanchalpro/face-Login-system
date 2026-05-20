@@ -40,19 +40,18 @@ def get_face_encoding(base64_str):
     except ValueError as e:
         return None, str(e)
 
+    # Resize image if too large — 320px is optimal for HOG detection speed
+    h, w = img.shape[:2]
+    max_dim = 320
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
     # Convert BGR → RGB for face_recognition
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # Optional: histogram equalization for better accuracy in poor lighting
-    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    l_channel, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    l_channel = clahe.apply(l_channel)
-    lab = cv2.merge((l_channel, a, b))
-    enhanced = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
-
     # Detect face locations
-    locations = face_recognition.face_locations(enhanced)
+    locations = face_recognition.face_locations(rgb)
 
     if len(locations) == 0:
         return None, "No face detected. Please ensure your face is clearly visible."
@@ -60,7 +59,7 @@ def get_face_encoding(base64_str):
         return None, "Multiple faces detected. Only one person should be in the frame."
 
     # Extract 128-d encoding
-    encodings = face_recognition.face_encodings(enhanced, locations)
+    encodings = face_recognition.face_encodings(rgb, locations)
     if not encodings:
         return None, "Could not encode the face. Please try again."
 

@@ -13,7 +13,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isScanning = false;
     let attempts = 0;
     const MAX_ATTEMPTS = 15;
-    const SCAN_INTERVAL = 2000; // ms between scans
+    const SCAN_INTERVAL = 800; // ms between scans (optimized for speed)
+
+    let cameraStartTime = null;
 
     // Start camera
     const started = await cam.start();
@@ -24,10 +26,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    cameraStartTime = Date.now();
     statusText.textContent = 'Camera ready. Scanning your face...';
 
     // Wait a moment for camera to stabilize then start scanning
-    setTimeout(() => startScanning(), 1500);
+    setTimeout(() => startScanning(), 500);
 
     async function startScanning() {
         isScanning = true;
@@ -43,10 +46,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusText.textContent = `Scanning... (attempt ${attempts + 1}/${MAX_ATTEMPTS})`;
 
             try {
+                const clientDuration = (Date.now() - cameraStartTime) / 1000;
                 const resp = await fetch('/api/login/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image_base64: frame }),
+                    body: JSON.stringify({
+                        image_base64: frame,
+                        client_duration: clientDuration,
+                        camera_start_time: cameraStartTime,
+                        current_time: Date.now()
+                    }),
                 });
 
                 const data = await resp.json();

@@ -60,5 +60,5 @@
 {% block extra_scripts %}
 {% load static %}
 <script src="{% static 'js/webcam.js' %}"></script>
-<script src="{% static 'js/login.js' %}"></script>
+<script src="{% static 'js/login.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

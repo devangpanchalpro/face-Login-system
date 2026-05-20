@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load face_filters %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <section class="page-section pt-5 mt-5">
@@ -70,7 +71,7 @@
                     {% if history %}
                     <div class="table-responsive">
                         <table class="table table-dark table-hover align-middle mb-0" id="history-table">
-                            <thead><tr><th>#</th><th>Date & Time</th><th>Confidence</th><th>IP Address</th></tr></thead>
+                            <thead><tr><th>#</th><th>Date & Time</th><th>Accuracy Score</th><th>L2 Distance</th><th>Time Taken</th><th>IP Address</th></tr></thead>
                             <tbody>
                                 {% for entry in history %}
                                 <tr>
@@ -78,12 +79,28 @@
                                     <td><i class="bi bi-calendar-check me-1 text-info"></i>{{ entry.logged_in_at|date:"d M Y, h:i A" }}</td>
                                     <td>
                                         {% if entry.confidence < 0.3 %}
-                                            <span class="badge bg-success">Excellent ({{ entry.confidence|floatformat:4 }})</span>
+                                            <span class="badge bg-success px-3 py-2" style="font-size: 0.85rem;">
+                                                <i class="bi bi-shield-fill-check me-1"></i>{{ entry.confidence|confidence_pct }}
+                                            </span>
                                         {% elif entry.confidence < 0.4 %}
-                                            <span class="badge bg-info">Good ({{ entry.confidence|floatformat:4 }})</span>
+                                            <span class="badge bg-info px-3 py-2" style="font-size: 0.85rem;">
+                                                <i class="bi bi-shield-fill me-1"></i>{{ entry.confidence|confidence_pct }}
+                                            </span>
                                         {% else %}
-                                            <span class="badge bg-warning text-dark">Fair ({{ entry.confidence|floatformat:4 }})</span>
+                                            <span class="badge bg-warning text-dark px-3 py-2" style="font-size: 0.85rem;">
+                                                <i class="bi bi-shield-fill-exclamation me-1"></i>{{ entry.confidence|confidence_pct }}
+                                            </span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-dark" style="font-family: monospace; font-size: 0.8rem; opacity: 0.8;">
+                                            {{ entry.confidence|floatformat:4 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary" style="font-family: monospace;">
+                                            <i class="bi bi-stopwatch me-1 text-info"></i>{{ entry.login_duration|floatformat:3 }}s
+                                        </span>
                                     </td>
                                     <td class="text-secondary">{{ entry.ip_address|default:"N/A" }}</td>
                                 </tr>

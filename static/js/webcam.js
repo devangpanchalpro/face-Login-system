@@ -27,8 +27,8 @@ class WebcamManager {
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
                     facingMode: 'user',
                 },
                 audio: false,
@@ -54,7 +54,7 @@ class WebcamManager {
         this.canvas.width = this.video.videoWidth;
         this.canvas.height = this.video.videoHeight;
         this.ctx.drawImage(this.video, 0, 0);
-        return this.canvas.toDataURL('image/jpeg', 0.9);
+        return this.canvas.toDataURL('image/jpeg', 0.6);
     }
 
     /**

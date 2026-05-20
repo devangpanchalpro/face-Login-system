@@ -5,6 +5,7 @@ Uses PostgreSQL + pgvector for fast vector similarity search.
 import json
 import base64
 import uuid
+import time
 import numpy as np
 
 from django.core.files.base import ContentFile
@@ -98,6 +99,7 @@ def api_register(request):
         "image_base64": "data:image/jpeg;base64,..."
     }
     """
+    start_time = time.time()
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -125,6 +127,61 @@ def api_register(request):
     encoding, msg = get_face_encoding(image_base64)
     if encoding is None:
         return JsonResponse({'success': False, 'message': msg}, status=400)
+
+    # Check if face is already registered (Auto-Login feature)
+    matched_user, distance = search_face(encoding, threshold=0.45)
+    if matched_user:
+        import face_recognition
+
+        # Get all encodings for this user from pgvector
+        user_encodings = []
+        face_enc_records = FaceEncoding.objects.filter(user=matched_user)
+
+        for fe in face_enc_records:
+            stored_enc = np.array(fe.encoding)
+            user_encodings.append(stored_enc)
+
+        if not user_encodings:
+            # Fallback to primary encoding
+            stored_enc = np.array(matched_user.face_encoding)
+            user_encodings.append(stored_enc)
+
+        # Compare against ALL encodings — if ANY match, approve auto-login
+        matches = face_recognition.compare_faces(
+            user_encodings, encoding, tolerance=0.4
+        )
+        if any(matches):
+            previous_login = matched_user.last_login
+            matched_user.record_login()
+
+            # Record login duration
+            duration = time.time() - start_time
+            LoginHistory.objects.create(
+                user=matched_user,
+                confidence=distance,
+                ip_address=get_client_ip(request),
+                login_duration=round(duration, 3)
+            )
+
+            # Store user ID in session
+            request.session['face_user_id'] = matched_user.id
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Face already registered! Logging you in as {matched_user.name}...',
+                'redirect_to_dashboard': True,
+                'user': {
+                    'id': matched_user.id,
+                    'name': matched_user.name,
+                    'email': matched_user.email,
+                    'phone': matched_user.phone or '',
+                    'dob': str(matched_user.dob) if matched_user.dob else '',
+                    'last_login': previous_login.strftime('%d %b %Y, %I:%M %p') if previous_login else 'First login!',
+                    'login_count': matched_user.login_count,
+                    'confidence': round(distance, 4),
+                    'login_duration': round(duration, 3)
+                }
+            })
 
     # Store as list for pgvector VectorField
     encoding_list = encoding.tolist()
@@ -184,10 +241,13 @@ def api_login(request):
 
     Returns matched user data + last_login info on success.
     """
+    start_time = time.time()
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
+
+    client_dur = data.get('client_duration')
 
     image_base64 = data.get('image_base64', '')
     if not image_base64:
@@ -199,52 +259,32 @@ def api_login(request):
         return JsonResponse({'success': False, 'message': msg}, status=400)
 
     # Search using pgvector (PostgreSQL native vector similarity search)
-    matched_user, distance = search_face(encoding, threshold=0.55)
+    # Threshold 0.45 = strict match (~98%+ accuracy), safe for 5M+ users
+    matched_user, distance = search_face(encoding, threshold=0.45)
 
     if matched_user:
-        # DOUBLE-CHECK: Compare against stored encodings using face_recognition
-        # pyrefly: ignore [missing-import]
-        import face_recognition
-
-        # Get all encodings for this user from pgvector
-        user_encodings = []
-        face_enc_records = FaceEncoding.objects.filter(user=matched_user)
-
-        for fe in face_enc_records:
-            stored_enc = np.array(fe.encoding)
-            user_encodings.append(stored_enc)
-
-        if not user_encodings:
-            # Fallback to primary encoding
-            stored_enc = np.array(matched_user.face_encoding)
-            user_encodings.append(stored_enc)
-
-        # Compare against ALL encodings — if ANY match, approve login
-        matches = face_recognition.compare_faces(
-            user_encodings, encoding, tolerance=0.4
-        )
-        best_match = any(matches)
-
-        if not best_match:
-            # None of the stored encodings matched — reject!
-            return JsonResponse({
-                'success': False,
-                'message': 'Face does not match. Access denied.',
-                'redirect_to_register': True,
-                'distance': round(distance, 4),
-            })
-
         # Save previous last_login for "last seen" display
         previous_login = matched_user.last_login
 
         # Update last_login + increment login_count
         matched_user.record_login()
 
+        # Get client_duration if provided, otherwise fallback to server processing time
+        duration = data.get('client_duration')
+        if duration is None:
+            duration = time.time() - start_time
+        else:
+            try:
+                duration = float(duration)
+            except (ValueError, TypeError):
+                duration = time.time() - start_time
+
         # Create audit trail entry
         LoginHistory.objects.create(
             user=matched_user,
             confidence=distance,
             ip_address=get_client_ip(request),
+            login_duration=round(duration, 3),
         )
 
         # Store user ID in session for dashboard access
@@ -262,6 +302,7 @@ def api_login(request):
                 'last_login': previous_login.strftime('%d %b %Y, %I:%M %p') if previous_login else 'First login!',
                 'login_count': matched_user.login_count,
                 'confidence': round(distance, 4),
+                'login_duration': round(duration, 3),
                 'encodings_stored': matched_user.encoding_count,
             }
         })

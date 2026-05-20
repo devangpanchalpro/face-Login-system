@@ -66,8 +66,8 @@ class FaceEncoding(models.Model):
             HnswIndex(
                 name='face_enc_hnsw_idx',
                 fields=['encoding'],
-                m=16,
-                ef_construction=64,
+                m=24,                # Graph connections per node (higher = better recall at 5M+ scale)
+                ef_construction=200,  # Build quality (one-time cost, higher = more accurate index)
                 opclasses=['vector_l2_ops'],
             )
         ]
@@ -89,6 +89,7 @@ class LoginHistory(models.Model):
     logged_in_at = models.DateTimeField(auto_now_add=True)
     confidence = models.FloatField(help_text="L2 distance (lower = better match)")
     ip_address = models.GenericIPAddressField(blank=True, null=True)
+    login_duration = models.FloatField(default=0.0, help_text="Time taken to process login in seconds")
 
     class Meta:
         ordering = ['-logged_in_at']
